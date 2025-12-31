@@ -1,0 +1,26 @@
+# Build artifacts
+build/
+
+# Lock files (optional - some teams prefer to commit this)
+# Move.lock
+
+# Package ID (generated on deployment)
+.package_id
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+
+# Logs
+*.log
