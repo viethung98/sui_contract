@@ -118,6 +118,51 @@ module medical_vault::medical_record {
         transfer::share_object(record);
     }
 
+    /// Create a medical record by doctor (no cap required)
+    /// Used when doctors upload records without owner's AdminCap
+    public entry fun create_record_by_doctor(
+        whitelist: &mut SealWhitelist,
+        record_id_bytes: vector<u8>,
+        walrus_cid: vector<vector<u8>>,
+        sealed_key_ref: vector<vector<u8>>,
+        doc_type: vector<u8>,
+        clock: &Clock,
+        ctx: &mut TxContext
+    ) {
+        let sender = tx_context::sender(ctx);
+
+        // Check: Must be an authorized doctor (writer) to add records
+        assert!(seal_whitelist::can_write(whitelist, sender, clock), E_NOT_DOCTOR);
+
+        let record_uid = object::new(ctx);
+        let record_obj_id = object::uid_to_inner(&record_uid);
+
+        let record = Record {
+            id: record_uid,
+            record_id: string::utf8(record_id_bytes),
+            whitelist_id: object::id(whitelist),
+            uploader: sender,
+            walrus_cid,
+            sealed_key_ref,
+            doc_type,
+            timestamp: clock::timestamp_ms(clock),
+            revoked: false,
+        };
+
+        // Add record to whitelist without cap (using internal function)
+        seal_whitelist::add_record_by_doctor(whitelist, record_obj_id, sender, clock);
+
+        event::emit(RecordCreated {
+            record_id: record_obj_id,
+            whitelist_id: object::id(whitelist),
+            uploader: sender,
+            doc_type_count: (vector::length(&record.doc_type) as u64),
+            timestamp: record.timestamp,
+        });
+
+        transfer::share_object(record);
+    }
+
     /// Add files to existing record (only the original uploader doctor can add)
     public entry fun add_files_to_record(
         whitelist: &SealWhitelist,
